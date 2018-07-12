@@ -1,0 +1,54 @@
+#!/bin/sh
+#####################################################
+##### Add issue url to commit message	   		#####
+#####################################################
+##### INSTALL: 									#####
+##### copy file to your <repository>/.git/hooks #####
+##### name of the file must be commit-msg 		#####
+##### replace GITLAB_URL.TDL at 52 line			#####
+##### done!										#####
+#####################################################
+#####################################################
+
+# Get name of remote branch
+BRANCH_PATH_REF=$(git symbolic-ref -q HEAD)
+
+# Parse name of remote branch by /
+NAME=${BRANCH_PATH_REF##*/}
+
+# Get description of branch
+DESCRIPTION=$(git config branch."$NAME".description)
+
+#### Parse project url ###
+REMOTE_URL=$(git remote -v | awk '{ print $2 }' | sed -n 1p)
+URL=""
+echo $REMOTE_URL | grep -E ^http > /dev/null
+if [ $? -eq 0 ]; then
+	URL=$(echo $REMOTE_URL | cut -d'/' -f4-)
+else
+	URL=$(echo $REMOTE_URL | cut -d':' -f2)
+fi
+
+# Ex. FINAL_URL=boksa/githooktest
+FINAL_URL=${URL::-4}
+
+##############
+### OUTPUT ###
+##############
+
+# $1 == path to commit message file
+# cat $1 > $1
+
+if [ -n "$DESCRIPTION" ]; then
+   echo "" >> $1
+   echo $DESCRIPTION >> $1
+fi
+
+# Add issue url to output
+ISSUE_ID=$(echo $NAME | cut -d'-' -f1 | grep -E [0-9]+)
+if [ ! -z $ISSUE_ID ]; then
+	echo "" >> $1
+
+	############## REPLACE URL HERE ##############
+	echo "http://GITLAB_URL.TDL/"$FINAL_URL"/issues/"$ISSUE_ID >> $1
+fi
